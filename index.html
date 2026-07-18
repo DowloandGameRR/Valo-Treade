@@ -1,0 +1,1386 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ValoTrade - Güvenli Hesap Takas</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics-compat.js"></script>
+    
+    <!-- Google reCAPTCHA -->
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    
+    <style>
+        /* ===== RESET & BASE ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0a0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        /* ===== MAIN CONTAINER ===== */
+        .app-container {
+            width: 100%;
+            max-width: 1400px;
+            background: linear-gradient(145deg, #0f0f1a, #1a0a2e);
+            border-radius: 32px;
+            padding: 30px;
+            box-shadow: 0 0 60px rgba(128, 0, 255, 0.15), inset 0 0 60px rgba(128, 0, 255, 0.05);
+            border: 1px solid rgba(128, 0, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .app-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 20%, rgba(128, 0, 255, 0.03) 0%, transparent 70%);
+            pointer-events: none;
+            animation: glowPulse 8s ease-in-out infinite;
+        }
+        
+        @keyframes glowPulse {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+        
+        /* ===== HEADER ===== */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(128, 0, 255, 0.2);
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .logo-icon {
+            font-size: 32px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #9b59b6, #8e44ad, #6c3483);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(128, 0, 255, 0.3);
+        }
+        
+        .logo-text {
+            font-size: 28px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #a855f7, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+        
+        .logo-text span {
+            background: linear-gradient(135deg, #f472b6, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(128, 0, 255, 0.1);
+            padding: 8px 16px 8px 12px;
+            border-radius: 50px;
+            border: 1px solid rgba(128, 0, 255, 0.2);
+        }
+        
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: white;
+            font-size: 14px;
+        }
+        
+        .user-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+        
+        /* ===== BUTTONS ===== */
+        .btn {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            color: white;
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(124, 58, 237, 0.5);
+        }
+        
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-google {
+            background: white;
+            color: #333;
+            padding: 12px 28px;
+            border-radius: 12px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn-google:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn-google img {
+            width: 20px;
+            height: 20px;
+        }
+        
+        .btn-outline {
+            background: transparent;
+            color: #a855f7;
+            border: 2px solid #a855f7;
+        }
+        
+        .btn-outline:hover {
+            background: rgba(168, 85, 247, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+        }
+        
+        .btn-sm {
+            padding: 6px 16px;
+            font-size: 12px;
+        }
+        
+        /* ===== AUTH SCREEN ===== */
+        .auth-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            min-height: 500px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .auth-screen h1 {
+            font-size: 48px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #a855f7, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .auth-screen p {
+            color: #888;
+            font-size: 18px;
+            margin-bottom: 30px;
+        }
+        
+        .auth-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(128, 0, 255, 0.2);
+            border-radius: 24px;
+            padding: 50px 60px;
+            max-width: 450px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+        
+        .auth-card .icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        
+        /* ===== DASHBOARD ===== */
+        .dashboard {
+            display: none;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .dashboard.active {
+            display: block;
+        }
+        
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(128, 0, 255, 0.15);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            border-color: rgba(128, 0, 255, 0.4);
+            transform: translateY(-3px);
+        }
+        
+        .stat-card .number {
+            font-size: 32px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #a855f7, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .stat-card .label {
+            font-size: 14px;
+            color: #888;
+            margin-top: 5px;
+        }
+        
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 5px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 5px;
+            border-radius: 14px;
+            margin-bottom: 25px;
+        }
+        
+        .tab-btn {
+            flex: 1;
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            color: #888;
+            font-weight: 600;
+            font-size: 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .tab-btn:hover {
+            color: #e0e0e0;
+        }
+        
+        .tab-btn.active {
+            background: rgba(124, 58, 237, 0.3);
+            color: #a855f7;
+            box-shadow: 0 0 20px rgba(124, 58, 237, 0.1);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* ===== FORMS ===== */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #ccc;
+            font-size: 14px;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(128, 0, 255, 0.2);
+            border-radius: 12px;
+            color: #e0e0e0;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #7c3aed;
+            box-shadow: 0 0 20px rgba(124, 58, 237, 0.15);
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        /* ===== MARKETPLACE ===== */
+        .marketplace-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .account-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(128, 0, 255, 0.15);
+            border-radius: 16px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .account-card:hover {
+            border-color: rgba(128, 0, 255, 0.4);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .account-card .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 50px;
+            font-size: 11px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .badge-verified {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        
+        .badge-pending {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        
+        .account-card .name {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .account-card .skins {
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 12px;
+        }
+        
+        .account-card .skins span {
+            display: inline-block;
+            background: rgba(128, 0, 255, 0.1);
+            padding: 2px 10px;
+            border-radius: 50px;
+            margin: 2px;
+            font-size: 12px;
+            color: #a855f7;
+        }
+        
+        .account-card .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        /* ===== ESCROW INFO ===== */
+        .escrow-banner {
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(16, 185, 129, 0.05));
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            border-radius: 16px;
+            padding: 20px 25px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        
+        .escrow-banner .icon {
+            font-size: 32px;
+        }
+        
+        .escrow-banner .text {
+            flex: 1;
+        }
+        
+        .escrow-banner .text h4 {
+            color: #a855f7;
+            margin-bottom: 4px;
+        }
+        
+        .escrow-banner .text p {
+            color: #888;
+            font-size: 14px;
+            margin: 0;
+        }
+        
+        /* ===== MODAL ===== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 999;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-overlay.active {
+            display: flex;
+        }
+        
+        .modal {
+            background: #1a0a2e;
+            border: 1px solid rgba(128, 0, 255, 0.3);
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 550px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8);
+        }
+        
+        .modal .close {
+            float: right;
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 28px;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+        
+        .modal .close:hover {
+            color: white;
+        }
+        
+        .modal h2 {
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #a855f7, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        /* ===== TOAST ===== */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            padding: 16px 24px;
+            border-radius: 12px;
+            background: #1a0a2e;
+            border: 1px solid rgba(128, 0, 255, 0.3);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 1000;
+            max-width: 400px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .toast.show {
+            display: block;
+            animation: slideUp 0.4s ease;
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .toast.success { border-color: #10b981; }
+        .toast.error { border-color: #ef4444; }
+        .toast.info { border-color: #3b82f6; }
+        
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .app-container {
+                padding: 15px;
+                border-radius: 20px;
+            }
+            
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+            
+            .auth-card {
+                padding: 30px 20px;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .escrow-banner {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .modal {
+                padding: 25px;
+                margin: 20px;
+            }
+            
+            .marketplace-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .logo-text {
+                font-size: 22px;
+            }
+            
+            .header-actions {
+                flex-wrap: wrap;
+            }
+        }
+        
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #0a0a0f;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #7c3aed;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6d28d9;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== TOAST ===== -->
+    <div id="toast" class="toast"></div>
+
+    <!-- ===== MODAL ===== -->
+    <div id="modalOverlay" class="modal-overlay">
+        <div class="modal" id="modalContent">
+            <button class="close" onclick="closeModal()">×</button>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- ===== APP ===== -->
+    <div class="app-container">
+
+        <!-- ===== HEADER ===== -->
+        <div class="header">
+            <div class="logo">
+                <span class="logo-icon">◈</span>
+                <span class="logo-text">Valo<span>Trade</span></span>
+            </div>
+            <div class="header-actions">
+                <div id="userInfo" style="display:none;" class="user-info">
+                    <div class="user-avatar" id="userAvatar">?</div>
+                    <span class="user-name" id="userName">Kullanıcı</span>
+                </div>
+                <button id="authBtn" class="btn btn-primary" onclick="handleAuth()">🔐 Giriş Yap</button>
+            </div>
+        </div>
+
+        <!-- ===== AUTH SCREEN ===== -->
+        <div id="authScreen" class="auth-screen">
+            <h1>◈ ValoTrade</h1>
+            <p>Valorant hesaplarını güvenle takas et</p>
+            <div class="auth-card">
+                <div class="icon">🛡️</div>
+                <h2 style="color:white; margin-bottom: 8px;">Güvenli Takas</h2>
+                <p style="color:#888; font-size:14px; margin-bottom:25px;">Google ile giriş yaparak başlayın</p>
+                <button id="googleLoginBtn" class="btn btn-google" onclick="loginWithGoogle()">
+                    <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59A14.5 14.5 0 0 1 9.5 24c0-1.59.28-3.14.76-4.59l-7.98-6.19A23.99 23.99 0 0 0 0 24c0 3.77.87 7.35 2.56 10.56l7.97-5.97z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 5.97C6.51 42.62 14.62 48 24 48z"/></svg>
+                    Google ile Giriş Yap
+                </button>
+                <div id="recaptchaContainer" style="margin-top:20px;"></div>
+                <p style="margin-top:20px; font-size:12px; color:#555;">🔒 Güvenli bağlantı ile korunuyorsunuz</p>
+            </div>
+        </div>
+
+        <!-- ===== DASHBOARD ===== -->
+        <div id="dashboard" class="dashboard">
+
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="number" id="statAccounts">0</div>
+                    <div class="label">Doğrulanmış Hesap</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" id="statTrades">0</div>
+                    <div class="label">Tamamlanan Takas</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" id="statOffers">0</div>
+                    <div class="label">Aktif Teklif</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" id="statEscrow">0</div>
+                    <div class="label">Emanet Bekleyen</div>
+                </div>
+            </div>
+
+            <!-- Escrow Banner -->
+            <div class="escrow-banner">
+                <div class="icon">⚖️</div>
+                <div class="text">
+                    <h4>🛡️ Emanet (Escrow) Sistemi</h4>
+                    <p>Hesaplar güvende! Takas sırasında her iki taraf da onay verene kadar hesaplar sistemde bekletilir. Kimse mağdur olmaz.</p>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="showEscrowInfo()">Detaylar</button>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="tabMarket" onclick="switchTab('tabMarket')">🏪 Pazar Yeri</button>
+                <button class="tab-btn" data-tab="tabMyAccounts" onclick="switchTab('tabMyAccounts')">📦 Hesaplarım</button>
+                <button class="tab-btn" data-tab="tabAddAccount" onclick="switchTab('tabAddAccount')">➕ Hesap Ekle</button>
+                <button class="tab-btn" data-tab="tabOffers" onclick="switchTab('tabOffers')">📩 Tekliflerim</button>
+            </div>
+
+            <!-- Tab: Market -->
+            <div id="tabMarket" class="tab-content active">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px;">
+                    <h3 style="color:#a855f7;">🏪 Pazar Yeri</h3>
+                    <div style="display:flex; gap:10px;">
+                        <input type="text" id="searchMarket" placeholder="Hesap ara..." style="padding:8px 16px; background:rgba(255,255,255,0.05); border:1px solid rgba(128,0,255,0.2); border-radius:10px; color:white;" oninput="filterMarket()">
+                        <select id="filterSkin" style="padding:8px 16px; background:rgba(255,255,255,0.05); border:1px solid rgba(128,0,255,0.2); border-radius:10px; color:white;" onchange="filterMarket()">
+                            <option value="">Tüm Skinler</option>
+                            <option value="Vandal">Vandal</option>
+                            <option value="Phantom">Phantom</option>
+                            <option value="Knife">Knife</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="marketplaceList" class="marketplace-grid">
+                    <!-- Dinamik olarak doldurulacak -->
+                </div>
+            </div>
+
+            <!-- Tab: My Accounts -->
+            <div id="tabMyAccounts" class="tab-content">
+                <h3 style="color:#a855f7; margin-bottom:20px;">📦 Hesaplarım</h3>
+                <div id="myAccountsList" class="marketplace-grid">
+                    <!-- Dinamik -->
+                </div>
+            </div>
+
+            <!-- Tab: Add Account -->
+            <div id="tabAddAccount" class="tab-content">
+                <h3 style="color:#a855f7; margin-bottom:20px;">➕ Yeni Hesap Ekle</h3>
+                <div style="max-width:600px;">
+                    <div class="form-group">
+                        <label>Valorant Kullanıcı Adı</label>
+                        <input type="text" id="accUsername" placeholder="Kullanıcı adınızı girin">
+                    </div>
+                    <div class="form-group">
+                        <label>Riot ID (Tag)</label>
+                        <input type="text" id="accTag" placeholder="#TR1">
+                    </div>
+                    <div class="form-group">
+                        <label>Skin Listesi (virgülle ayırın)</label>
+                        <input type="text" id="accSkins" placeholder="Örn: Vandal, Phantom, Knife">
+                    </div>
+                    <div class="form-group">
+                        <label>Açıklama</label>
+                        <textarea id="accDesc" placeholder="Hesap hakkında kısa bilgi..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <div class="g-recaptcha" data-sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI" data-callback="onRecaptchaSuccess"></div>
+                    </div>
+                    <button class="btn btn-primary" onclick="addAccount()">✅ Hesabı Doğrula ve Ekle</button>
+                </div>
+            </div>
+
+            <!-- Tab: Offers -->
+            <div id="tabOffers" class="tab-content">
+                <h3 style="color:#a855f7; margin-bottom:20px;">📩 Tekliflerim</h3>
+                <div id="offersList">
+                    <!-- Dinamik -->
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- ===== JAVASCRIPT ===== -->
+    <script>
+        // =============================================
+        // FIREBASE CONFIG
+        // =============================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyA1KWjDklotAa1jI6oQvJP1vPizFhFjBas",
+            authDomain: "chatmesh-e46ec.firebaseapp.com",
+            projectId: "chatmesh-e46ec",
+            storageBucket: "chatmesh-e46ec.firebasestorage.app",
+            messagingSenderId: "895977946389",
+            appId: "1:895977946389:web:5f52785a29caf566db3d1c",
+            measurementId: "G-QF8BV80K3B"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const analytics = firebase.analytics();
+
+        // =============================================
+        // STATE
+        // =============================================
+        let currentUser = null;
+        let accounts = [];
+        let trades = [];
+        let offers = [];
+        let escrowCount = 0;
+        let recaptchaToken = null;
+
+        // =============================================
+        // DOM REFS
+        // =============================================
+        const authScreen = document.getElementById('authScreen');
+        const dashboard = document.getElementById('dashboard');
+        const authBtn = document.getElementById('authBtn');
+        const userInfo = document.getElementById('userInfo');
+        const userName = document.getElementById('userName');
+        const userAvatar = document.getElementById('userAvatar');
+        const googleLoginBtn = document.getElementById('googleLoginBtn');
+
+        // =============================================
+        // AUTH FUNCTIONS
+        // =============================================
+        function handleAuth() {
+            if (currentUser) {
+                logout();
+            } else {
+                loginWithGoogle();
+            }
+        }
+
+        function loginWithGoogle() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider)
+                .then((result) => {
+                    const user = result.user;
+                    currentUser = user;
+                    updateUI(user);
+                    showToast('✅ Google ile giriş başarılı!', 'success');
+                    showDashboard();
+                })
+                .catch((error) => {
+                    console.error('Google giriş hatası:', error);
+                    showToast('❌ Giriş başarısız: ' + error.message, 'error');
+                });
+        }
+
+        function logout() {
+            auth.signOut().then(() => {
+                currentUser = null;
+                updateUI(null);
+                showAuthScreen();
+                showToast('👋 Çıkış yapıldı', 'info');
+            });
+        }
+
+        // Auth state listener
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                currentUser = user;
+                updateUI(user);
+                showDashboard();
+            } else {
+                currentUser = null;
+                updateUI(null);
+                showAuthScreen();
+            }
+        });
+
+        function updateUI(user) {
+            if (user) {
+                userInfo.style.display = 'flex';
+                authBtn.textContent = '🚪 Çıkış Yap';
+                userName.textContent = user.displayName || user.email || 'Kullanıcı';
+                userAvatar.textContent = (user.displayName || 'K')[0].toUpperCase();
+                googleLoginBtn.style.display = 'none';
+            } else {
+                userInfo.style.display = 'none';
+                authBtn.textContent = '🔐 Giriş Yap';
+                googleLoginBtn.style.display = 'inline-flex';
+            }
+        }
+
+        function showDashboard() {
+            authScreen.style.display = 'none';
+            dashboard.classList.add('active');
+            renderAll();
+        }
+
+        function showAuthScreen() {
+            authScreen.style.display = 'flex';
+            dashboard.classList.remove('active');
+        }
+
+        // =============================================
+        // RECAPTCHA
+        // =============================================
+        function onRecaptchaSuccess(token) {
+            recaptchaToken = token;
+            console.log('✅ reCAPTCHA doğrulandı');
+        }
+
+        // =============================================
+        // TAB SWITCHING
+        // =============================================
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+
+            // Render content
+            if (tabId === 'tabMarket') renderMarketplace();
+            if (tabId === 'tabMyAccounts') renderMyAccounts();
+            if (tabId === 'tabOffers') renderOffers();
+        }
+
+        // =============================================
+        // ACCOUNT FUNCTIONS
+        // =============================================
+        function addAccount() {
+            if (!currentUser) {
+                showToast('❌ Lütfen önce giriş yapın!', 'error');
+                return;
+            }
+
+            if (!recaptchaToken) {
+                showToast('❌ Lütfen reCAPTCHA doğrulamasını tamamlayın!', 'error');
+                return;
+            }
+
+            const username = document.getElementById('accUsername').value.trim();
+            const tag = document.getElementById('accTag').value.trim();
+            const skins = document.getElementById('accSkins').value.trim().split(',').map(s => s.trim()).filter(Boolean);
+            const desc = document.getElementById('accDesc').value.trim();
+
+            if (!username || !tag || skins.length === 0) {
+                showToast('❌ Lütfen tüm alanları doldurun!', 'error');
+                return;
+            }
+
+            // Simüle edilmiş doğrulama
+            showToast('🔍 Hesap doğrulanıyor...', 'info');
+
+            setTimeout(() => {
+                // Simüle: %90 doğrulama başarılı
+                const verified = Math.random() < 0.9;
+
+                if (verified) {
+                    const newAccount = {
+                        id: Date.now(),
+                        username: username,
+                        tag: tag,
+                        skins: skins,
+                        desc: desc,
+                        owner: currentUser.uid,
+                        ownerName: currentUser.displayName || currentUser.email,
+                        verified: true,
+                        createdAt: new Date().toISOString(),
+                        status: 'active'
+                    };
+
+                    accounts.push(newAccount);
+                    renderAll();
+                    document.getElementById('accUsername').value = '';
+                    document.getElementById('accTag').value = '';
+                    document.getElementById('accSkins').value = '';
+                    document.getElementById('accDesc').value = '';
+                    recaptchaToken = null;
+                    grecaptcha.reset();
+
+                    showToast('✅ Hesap başarıyla doğrulandı ve listelendi!', 'success');
+                    switchTab('tabMarket');
+                } else {
+                    showToast('❌ Hesap doğrulanamadı. Lütfen bilgileri kontrol edin.', 'error');
+                }
+            }, 2000);
+        }
+
+        function sendOffer(accountId) {
+            if (!currentUser) {
+                showToast('❌ Lütfen önce giriş yapın!', 'error');
+                return;
+            }
+
+            const account = accounts.find(a => a.id === accountId);
+            if (!account) return;
+
+            if (account.owner === currentUser.uid) {
+                showToast('❌ Kendi hesabına teklif gönderemezsin!', 'error');
+                return;
+            }
+
+            const existingOffer = offers.find(o => o.accountId === accountId && o.from === currentUser.uid);
+            if (existingOffer) {
+                showToast('⚠️ Zaten bu hesaba teklif gönderdin!', 'warning');
+                return;
+            }
+
+            const offer = {
+                id: Date.now(),
+                accountId: accountId,
+                from: currentUser.uid,
+                fromName: currentUser.displayName || currentUser.email,
+                to: account.owner,
+                toName: account.ownerName,
+                status: 'pending',
+                createdAt: new Date().toISOString(),
+                message: prompt('Teklif mesajı (opsiyonel):') || 'Takas teklifi'
+            };
+
+            offers.push(offer);
+            renderAll();
+            showToast('✅ Teklif gönderildi! Karşı tarafın onaylamasını bekleyin.', 'success');
+        }
+
+        function acceptOffer(offerId) {
+            const offer = offers.find(o => o.id === offerId);
+            if (!offer) return;
+
+            if (offer.to !== currentUser.uid) {
+                showToast('❌ Bu teklifi onaylama yetkin yok!', 'error');
+                return;
+            }
+
+            offer.status = 'accepted';
+            trades.push({
+                id: Date.now(),
+                accountId: offer.accountId,
+                from: offer.from,
+                to: offer.to,
+                createdAt: new Date().toISOString(),
+                status: 'escrow'
+            });
+            escrowCount++;
+
+            renderAll();
+            showToast('✅ Teklif onaylandı! Hesap emanet (escrow) sürecine alındı.', 'success');
+        }
+
+        function declineOffer(offerId) {
+            const offer = offers.find(o => o.id === offerId);
+            if (!offer) return;
+
+            if (offer.to !== currentUser.uid) {
+                showToast('❌ Bu teklifi reddetme yetkin yok!', 'error');
+                return;
+            }
+
+            offer.status = 'declined';
+            renderAll();
+            showToast('❌ Teklif reddedildi.', 'info');
+        }
+
+        function completeTrade(tradeId) {
+            const trade = trades.find(t => t.id === tradeId);
+            if (!trade) return;
+
+            trade.status = 'completed';
+            escrowCount--;
+            renderAll();
+            showToast('✅ Takas tamamlandı! Hesaplar başarıyla değiştirildi.', 'success');
+        }
+
+        // =============================================
+        // SHARE LINK
+        // =============================================
+        function generateShareLink(accountId) {
+            const link = `${window.location.origin}${window.location.pathname}?offer=${accountId}`;
+            navigator.clipboard.writeText(link).then(() => {
+                showToast('📋 Teklif linki kopyalandı!', 'success');
+            }).catch(() => {
+                showToast('📋 Link: ' + link, 'info');
+            });
+        }
+
+        // =============================================
+        // ESCROW INFO
+        // =============================================
+        function showEscrowInfo() {
+            const modal = document.getElementById('modalBody');
+            modal.innerHTML = `
+                <h2>⚖️ Emanet (Escrow) Sistemi</h2>
+                <p style="color:#888; margin-bottom:20px;">Hesapların güvenli takası için emanet sistemi</p>
+                <div style="background:rgba(255,255,255,0.03); border-radius:12px; padding:20px; margin-bottom:15px;">
+                    <h4 style="color:#a855f7;">1️⃣ Teklif Gönder</h4>
+                    <p style="color:#888; font-size:14px;">İlgilendiğin hesaba takas teklifi gönder.</p>
+                </div>
+                <div style="background:rgba(255,255,255,0.03); border-radius:12px; padding:20px; margin-bottom:15px;">
+                    <h4 style="color:#a855f7;">2️⃣ Karşılıklı Onay</h4>
+                    <p style="color:#888; font-size:14px;">Her iki taraf da teklifi onaylayana kadar hesaplar sistemde bekletilir.</p>
+                </div>
+                <div style="background:rgba(255,255,255,0.03); border-radius:12px; padding:20px; margin-bottom:15px;">
+                    <h4 style="color:#a855f7;">3️⃣ Emanet Süreci</h4>
+                    <p style="color:#888; font-size:14px;">Onay sonrası hesaplar geçici olarak sistem tarafından kilitlenir.</p>
+                </div>
+                <div style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.2); border-radius:12px; padding:20px;">
+                    <h4 style="color:#10b981;">✅ Tamamlanma</h4>
+                    <p style="color:#888; font-size:14px;">Her iki taraf da onay verdikten sonra hesaplar karşılıklı olarak teslim edilir.</p>
+                </div>
+                <button class="btn btn-primary" style="margin-top:20px;" onclick="closeModal()">Anladım</button>
+            `;
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+
+        // =============================================
+        // FILTER & SEARCH
+        // =============================================
+        function filterMarket() {
+            renderMarketplace();
+        }
+
+        // =============================================
+        // RENDER FUNCTIONS
+        // =============================================
+        function renderAll() {
+            renderStats();
+            renderMarketplace();
+            renderMyAccounts();
+            renderOffers();
+        }
+
+        function renderStats() {
+            document.getElementById('statAccounts').textContent = accounts.filter(a => a.verified).length;
+            document.getElementById('statTrades').textContent = trades.filter(t => t.status === 'completed').length;
+            document.getElementById('statOffers').textContent = offers.filter(o => o.status === 'pending').length;
+            document.getElementById('statEscrow').textContent = escrowCount;
+        }
+
+        function renderMarketplace() {
+            const container = document.getElementById('marketplaceList');
+            const search = document.getElementById('searchMarket').value.toLowerCase();
+            const skinFilter = document.getElementById('filterSkin').value;
+
+            let filtered = accounts.filter(a => a.verified && a.status === 'active');
+
+            if (search) {
+                filtered = filtered.filter(a =>
+                    a.username.toLowerCase().includes(search) ||
+                    a.tag.toLowerCase().includes(search) ||
+                    a.skins.some(s => s.toLowerCase().includes(search))
+                );
+            }
+
+            if (skinFilter) {
+                filtered = filtered.filter(a =>
+                    a.skins.some(s => s.toLowerCase().includes(skinFilter.toLowerCase()))
+                );
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div style="grid-column:1/-1; text-align:center; padding:40px; color:#666;">
+                        <p style="font-size:48px; margin-bottom:10px;">🏪</p>
+                        <p>Henüz listelenmiş hesap yok.</p>
+                        <p style="font-size:14px;">İlk hesabı eklemek için "Hesap Ekle" sekmesini kullan.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map(a => `
+                <div class="account-card">
+                    <div>
+                        <span class="badge badge-verified">✅ Doğrulandı</span>
+                        <span class="badge" style="background:rgba(124,58,237,0.2); color:#a855f7; border:1px solid rgba(124,58,237,0.3);">
+                            ${a.ownerName || 'Anonim'}
+                        </span>
+                    </div>
+                    <div class="name">${a.username}${a.tag}</div>
+                    <div class="skins">
+                        ${a.skins.map(s => `<span>🎨 ${s}</span>`).join(' ')}
+                    </div>
+                    <p style="color:#888; font-size:13px;">${a.desc || 'Açıklama yok'}</p>
+                    <div class="actions">
+                        ${a.owner !== currentUser?.uid ? `
+                            <button class="btn btn-primary btn-sm" onclick="sendOffer(${a.id})">📩 Teklif Gönder</button>
+                            <button class="btn btn-outline btn-sm" onclick="generateShareLink(${a.id})">🔗 Paylaş</button>
+                        ` : `
+                            <span style="color:#888; font-size:12px;">🔒 Kendi hesabın</span>
+                        `}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderMyAccounts() {
+            const container = document.getElementById('myAccountsList');
+
+            if (!currentUser) {
+                container.innerHTML = '<p style="color:#666;">Lütfen giriş yapın.</p>';
+                return;
+            }
+
+            const myAccounts = accounts.filter(a => a.owner === currentUser.uid);
+
+            if (myAccounts.length === 0) {
+                container.innerHTML = `
+                    <div style="grid-column:1/-1; text-align:center; padding:40px; color:#666;">
+                        <p style="font-size:48px; margin-bottom:10px;">📦</p>
+                        <p>Henüz hesap eklemedin.</p>
+                        <p style="font-size:14px;">"Hesap Ekle" sekmesinden yeni bir hesap ekleyerek başla.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = myAccounts.map(a => `
+                <div class="account-card">
+                    <div>
+                        <span class="badge badge-verified">✅ ${a.verified ? 'Doğrulandı' : 'Beklemede'}</span>
+                    </div>
+                    <div class="name">${a.username}${a.tag}</div>
+                    <div class="skins">
+                        ${a.skins.map(s => `<span>🎨 ${s}</span>`).join(' ')}
+                    </div>
+                    <p style="color:#888; font-size:13px;">${a.desc || 'Açıklama yok'}</p>
+                    <div class="actions">
+                        <button class="btn btn-outline btn-sm" onclick="generateShareLink(${a.id})">🔗 Paylaş</button>
+                        <button class="btn btn-danger btn-sm" onclick="removeAccount(${a.id})">🗑️ Sil</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderOffers() {
+            const container = document.getElementById('offersList');
+
+            if (!currentUser) {
+                container.innerHTML = '<p style="color:#666;">Lütfen giriş yapın.</p>';
+                return;
+            }
+
+            const myOffers = offers.filter(o => o.from === currentUser.uid || o.to === currentUser.uid);
+
+            if (myOffers.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align:center; padding:40px; color:#666;">
+                        <p style="font-size:48px; margin-bottom:10px;">📩</p>
+                        <p>Henüz teklifin yok.</p>
+                        <p style="font-size:14px;">Pazar yerinden bir hesaba teklif gönderebilirsin.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = myOffers.map(o => {
+                const account = accounts.find(a => a.id === o.accountId);
+                const isIncoming = o.to === currentUser.uid;
+
+                return `
+                    <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(128,0,255,0.15); border-radius:16px; padding:20px; margin-bottom:15px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                            <div>
+                                <strong style="color:#a855f7;">${isIncoming ? '📥 Gelen Teklif' : '📤 Giden Teklif'}</strong>
+                                <div style="font-size:14px; color:#888; margin-top:4px;">
+                                    ${isIncoming ? `${o.fromName} → ${o.toName}` : `${o.fromName} → ${o.toName}`}
+                                    ${account ? ` (${account.username}${account.tag})` : ''}
+                                </div>
+                                <div style="font-size:13px; color:#666; margin-top:4px;">${o.message || ''}</div>
+                            </div>
+                            <div style="display:flex; gap:8px;">
+                                <span class="badge ${o.status === 'pending' ? 'badge-pending' : o.status === 'accepted' ? 'badge-verified' : ''}" 
+                                      style="background: ${o.status === 'pending' ? 'rgba(245,158,11,0.2)' : o.status === 'accepted' ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'};
+                                             color: ${o.status === 'pending' ? '#f59e0b' : o.status === 'accepted' ? '#10b981' : '#ef4444'};
+                                             border: 1px solid ${o.status === 'pending' ? 'rgba(245,158,11,0.3)' : o.status === 'accepted' ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'};">
+                                    ${o.status === 'pending' ? '⏳ Bekliyor' : o.status === 'accepted' ? '✅ Kabul' : '❌ Red'}
+                                </span>
+                                ${isIncoming && o.status === 'pending' ? `
+                                    <button class="btn btn-success btn-sm" onclick="acceptOffer(${o.id})">✅ Kabul</button>
+                                    <button class="btn btn-danger btn-sm" onclick="declineOffer(${o.id})">❌ Red</button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // =============================================
+        // REMOVE ACCOUNT
+        // =============================================
+        function removeAccount(accountId) {
+            if (!confirm('Bu hesabı silmek istediğinize emin misiniz?')) return;
+            accounts = accounts.filter(a => a.id !== accountId);
+            renderAll();
+            showToast('🗑️ Hesap silindi.', 'info');
+        }
+
+        // =============================================
+        // TOAST
+        // =============================================
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast ' + type + ' show';
+            clearTimeout(toast._timeout);
+            toast._timeout = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 4000);
+        }
+
+        // =============================================
+        // INIT
+        // =============================================
+        // Auth state zaten dinleniyor
+        console.log('🚀 ValoTrade başlatıldı!');
+
+        // Modal dışına tıklama ile kapatma
+        document.getElementById('modalOverlay').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        // Demo veri ekle (gösterim için)
+        setTimeout(() => {
+            if (accounts.length === 0) {
+                accounts.push({
+                    id: 1,
+                    username: 'Legendary',
+                    tag: '#TR1',
+                    skins: ['Vandal', 'Phantom', 'Knife'],
+                    desc: 'Valorant Champion Set, 2024 Sezonu',
+                    owner: 'demo1',
+                    ownerName: 'Demo Kullanıcı',
+                    verified: true,
+                    createdAt: new Date().toISOString(),
+                    status: 'active'
+                });
+                accounts.push({
+                    id: 2,
+                    username: 'ShadowStrike',
+                    tag: '#EU2',
+                    skins: ['Oni Claw', 'Elderflame', 'Prime Vandal'],
+                    desc: 'Limited Edition Skin Set',
+                    owner: 'demo2',
+                    ownerName: 'Valo Collector',
+                    verified: true,
+                    createdAt: new Date().toISOString(),
+                    status: 'active'
+                });
+                renderAll();
+            }
+        }, 500);
+    </script>
+</body>
+</html>
